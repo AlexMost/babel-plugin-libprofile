@@ -12,25 +12,23 @@ class State {
         this.clear();
     }
     clear() {
-        this.aliases = {};
+        this.importAliases = {};
     }
-    maybeAddAlias(source, alias) {
-        if (source === this.explore) {
-            this.aliases[alias] = source;
-            if (!this.stats[source]) {
-                this.stats[source] = {};
-            }
+    addImportAlias(importName, alias) {
+        this.importAliases[alias] = importName;
+        if (!this.stats[importName]) {
+            this.stats[importName] = {};
         }
     }
-    getAlias(name) {
-        return this.aliases[name];
+    getImportAlias(name) {
+        return this.importAliases[name];
     }
-    updateSource(source, member) {
-        if (this.stats[source]) {
-            if (!this.stats[source][member]) {
-                this.stats[source][member] = { count: 0 };
+    updateImportMemberInfo(importName, member) {
+        if (this.stats[importName]) {
+            if (!this.stats[importName][member]) {
+                this.stats[importName][member] = { count: 0 };
             }
-            this.stats[source][member].count += 1;
+            this.stats[importName][member].count += 1;
         }
     }
     getDistPath() {
@@ -41,6 +39,9 @@ class State {
     }
     dumpStats() {
         return JSON.stringify(this.stats);
+    }
+    isExploredImport(importName) {
+        return importName === this.explore;
     }
 }
 
@@ -60,17 +61,19 @@ export default function () {
             },
             MemberExpression(nodePath) {
                 const name = nodePath.node.object.name;
-                const alias = pluginState.getAlias(name);
+                const alias = pluginState.getImportAlias(name);
                 if (alias) {
-                    pluginState.updateSource(alias, nodePath.node.property.name);
+                    pluginState.updateImportMemberInfo(alias, nodePath.node.property.name);
                 }
             },
             ImportDeclaration: (nodePath, state) => {
-                const specifiers = nodePath.node.specifiers;
-                const sourceName = nodePath.node.source.value;
-                specifiers.forEach((specifier) => {
+                const importName = nodePath.node.source.value;
+                if (! pluginState.isExploredImport(importName)) {
+                    return;
+                }
+                nodePath.node.specifiers.forEach((specifier) => {
                     if (specifier.type === 'ImportDefaultSpecifier') {
-                        pluginState.maybeAddAlias(sourceName, specifier.local.name);
+                        pluginState.addImportAlias(importName, specifier.local.name);
                     }
                 })
             },

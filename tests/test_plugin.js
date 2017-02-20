@@ -11,9 +11,11 @@ describe('Basic test', () => {
     it('ImportDefaultSpecifier test', () => {
         const input = `
         import Rx from 'rx';
+        import test from 'test';
         Rx.map();
         Rx.flatMap();
         Rx.map();
+        test.map();
         `;
 
         babel.transform(input, options).code;
