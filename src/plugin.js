@@ -8,7 +8,7 @@ class State {
         this.explore = config.explore;
         this.stats = {};
         this.dir = config.dir;
-        this.fname = config.filename || 'result.json';
+        this.fname = config.filename || 'libprofile.json';
         this.clear();
     }
     clear() {
@@ -59,11 +59,14 @@ export default function () {
                 }
                 pluginState.clear();
             },
-            MemberExpression(nodePath) {
-                const name = nodePath.node.object.name;
-                const alias = pluginState.getImportAlias(name);
-                if (alias) {
-                    pluginState.updateImportMemberInfo(alias, nodePath.node.property.name);
+            CallExpression(nodePath) {
+                if (nodePath.node.callee.type === 'MemberExpression') {
+                    const callee = nodePath.node.callee;
+                    const importName = callee.object.name;
+                    const alias = pluginState.getImportAlias(importName);
+                    if (alias) {
+                        pluginState.updateImportMemberInfo(alias, callee.property.name);
+                    }
                 }
             },
             ImportDeclaration: (nodePath, state) => {
